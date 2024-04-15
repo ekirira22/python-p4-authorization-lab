@@ -30,7 +30,7 @@ class ClearSession(Resource):
 class IndexArticle(Resource):
     
     def get(self):
-        articles = [article.to_dict() for article in Article.query.all()]
+        articles = [article.to_dict() for article in Article.query.filter_by(is_member_only = False).all()]
         return make_response(jsonify(articles), 200)
 
 class ShowArticle(Resource):
@@ -84,15 +84,22 @@ class CheckSession(Resource):
         
         return {}, 401
 
+@app.before_request
+def user_logged_in():
+    if not session.get('user_id') and request.endpoint != 'article_list' and request.endpoint != 'login':
+        return {"error" : "Log in to view content"}, 401
+    
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        articles = [article.to_dict() for article in Article.query.filter_by(is_member_only = True).all()]
+        return make_response(jsonify(articles), 200)
 
 class MemberOnlyArticle(Resource):
     
     def get(self, id):
-        pass
+        article = Article.query.filter_by(id=id, is_member_only=True).first()
+        return article.to_dict(), 200
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
